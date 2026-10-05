@@ -315,6 +315,9 @@ function cleanBullet(value){
     .map(x=>x.replace(/^\s*[・•●■□\-]\s*/,"").trim())
     .filter(Boolean).map(x=>`・${x}`).join("\n")
 }
+function plainLines(value){
+  return String(value||"").replace(/\r/g,"").split("\n").map(x=>x.replace(/^\s*[・•●■□\-]\s*/,"").trim()).filter(Boolean).join("\n")
+}
 function newMatchSet(data={}){
   return {id:data.id||uuid(),heading:data.heading||"",good:data.good||"",bad:data.bad||"",rating:Number(data.rating)||0}
 }
@@ -356,6 +359,7 @@ function updateMatchModeUI(){
   document.getElementById("legacyMatchForm").classList.toggle("hidden",isNew);
   document.getElementById("overallRatingLabel").textContent=isNew?"今日の評価（5段階）":"今日の自己評価（任意）";
   document.getElementById("notesLabel").textContent=isNew?"備考（任意）":"備考";
+  document.getElementById("notes").placeholder=isNew?"感想とか次にかける思いとか何かあれば":"コーチのコメント、体調など";
 }
 function renderMatchSets(){
   const wrap=document.getElementById("matchSets");wrap.innerHTML="";
@@ -442,7 +446,7 @@ function collect(){
   syncSets();
   return {
     date:todayISO(),activity:activity(),
-    matchMode, newMatchSets:newMatchSets.map(x=>({good:cleanBullet(x.good),bad:cleanBullet(x.bad)})),
+    matchMode, newMatchSets:newMatchSets.map(x=>({good:plainLines(x.good),bad:plainLines(x.bad)})),
     theme:activity()==="その他"?"":document.getElementById("theme").value.trim(),
     matchSets:matchSets.map(x=>({...x,good:cleanBullet(x.good),bad:cleanBullet(x.bad)})),
     trSets:trSets.map(x=>({...x,good:cleanBullet(x.good),bad:cleanBullet(x.bad)})),
@@ -458,7 +462,7 @@ function generate(data=collect()){
   if(isNew){
     MATCH_HEADINGS.forEach((heading,i)=>{
       const x=data.newMatchSets?.[i]||{};
-      text+=`\n\n【${circledNumber(i+1)} ${heading}】\n\n〈できたこと〉\n${x.good||""}\n\n〈次の試合で改善・継続したいこと〉\n${x.bad||""}`;
+      text+=`\n\n【${circledNumber(i+1)} ${heading}】\nできたこと：${plainLines(x.good)}\n次の試合で改善・継続したいこと：${plainLines(x.bad)}`;
     });
     text+=`\n\n【今日の評価】\n${data.overallRating?`${data.overallRating}/5点`:"未選択"}`;
     if(data.notes)text+=`\n\n【備考】\n${data.notes}`;
@@ -510,7 +514,7 @@ function setActivity(type){
 }
 function applyData(data){
   matchMode=data.matchMode==="new"?"new":data.matchMode==="legacy"||data.matchSets?.length?"legacy":preferredMatchMode;
-  newMatchSets=MATCH_HEADINGS.map((_,i)=>({good:data.newMatchSets?.[i]?.good||"",bad:data.newMatchSets?.[i]?.bad||""}));
+  newMatchSets=MATCH_HEADINGS.map((_,i)=>({good:plainLines(data.newMatchSets?.[i]?.good),bad:plainLines(data.newMatchSets?.[i]?.bad)}));
   renderNewMatchSets();
   const radio=document.querySelector(`input[name="activity"][value="${data.activity||"試合"}"]`);
   if(radio)radio.checked=true;
@@ -609,6 +613,9 @@ function saveCompleted(){
   saveDraft();
   return text
 }
+function historyText(item){
+  return item.data?.activity==="試合"&&item.data.matchMode==="new"?generate(item.data):item.text;
+}
 function renderHistory(){
   const wrap=document.getElementById("historyList");
   if(!history.length){wrap.innerHTML='<div class="empty">まだ保存された活動報告はありません。</div>';return}
@@ -616,7 +623,7 @@ function renderHistory(){
     <div class="history-item">
       <div class="history-date">${item.locked?"🔒 ":""}${esc(formatDate(item.date))}<span class="history-type">${esc(item.data.activity)}</span></div>
       ${item.data.theme?`<div class="history-preview"><strong>テーマ：</strong>${esc(item.data.theme)}</div>`:""}
-      <div class="history-preview">${esc(item.text.slice(0,120))}${item.text.length>120?"…":""}</div>
+      <div class="history-preview">${esc(historyText(item).slice(0,120))}${historyText(item).length>120?"…":""}</div>
       <div class="actions">
         <button class="small primary" data-h="copy" data-id="${item.id}">コピー</button>
         <button class="small secondary" data-h="edit" data-id="${item.id}">編集</button>
@@ -728,7 +735,7 @@ document.querySelectorAll("nav button").forEach(x=>x.onclick=()=>switchScreen(x.
 document.getElementById("historyList").onclick=async e=>{
   const b=e.target.closest("[data-h]");if(!b)return;
   const item=history.find(x=>x.id===b.dataset.id);if(!item)return;
-  if(b.dataset.h==="copy"){await copyText(item.text);toast("コピーしました")}
+  if(b.dataset.h==="copy"){await copyText(historyText(item));toast("コピーしました")}
   if(b.dataset.h==="edit"){currentEditId=item.id;applyData(item.data);switchScreen("write");toast("編集モードです")}
   if(b.dataset.h==="lock"){
     item.locked=!item.locked;
