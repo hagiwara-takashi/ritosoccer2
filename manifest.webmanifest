@@ -1,0 +1,9 @@
+{
+  "name": "サッカーノート V17",
+  "short_name": "サッカーノート",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f5f4",
+  "theme_color": "#123524",
+  "lang": "ja"
+}

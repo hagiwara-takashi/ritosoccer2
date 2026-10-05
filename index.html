@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#174d32">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="サッカーノート">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <title>サッカーノート V17</title>
+  <style>
+    :root{
+      --bg:#f7f8f7;--card:#fff;--text:#172019;--muted:#707a73;
+      --line:#e3e8e4;--primary:#174d32;--primary-soft:#edf5f0;
+      --danger:#a12a2a;--radius:14px
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg);color:var(--text);
+      padding-bottom:calc(86px + env(safe-area-inset-bottom))
+    }
+    header{
+      position:sticky;top:0;z-index:20;
+      background:rgba(23,77,50,.97);color:#fff;
+      padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+      backdrop-filter:blur(10px)
+    }
+    .header-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .title-menu{
+      appearance:none;border:0;background:transparent;color:#fff;
+      min-height:34px;padding:4px 0;font-size:18px;font-weight:800;text-align:left
+    }
+    .header-menu{
+      position:absolute;left:12px;top:calc(50px + env(safe-area-inset-top));
+      width:190px;background:#fff;border:1px solid var(--line);border-radius:12px;
+      padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.18)
+    }
+    .menu-item{
+      width:100%;min-height:40px;padding:9px 10px;background:#fff;color:var(--text);
+      text-align:left;border-radius:8px;font-size:13px
+    }
+    .muted-menu{color:var(--muted)}
+    .menu-separator{height:1px;background:var(--line);margin:5px 3px}
+    .modal{
+      position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.38);
+      display:flex;align-items:flex-end;justify-content:center;padding:12px
+    }
+    .modal-card{
+      width:min(640px,100%);background:#fff;border-radius:18px 18px 12px 12px;
+      padding:16px;box-shadow:0 -8px 30px rgba(0,0,0,.2)
+    }
+    .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .modal-head h2{margin:0}
+    .lock-btn.locked{background:#fff3cd;color:#765600}
+    .sample-top{
+      min-height:34px!important;padding:6px 10px!important;border-radius:9px!important;
+      background:rgba(255,255,255,.16)!important;color:#fff!important;font-size:12px!important
+    }
+    main{max-width:640px;margin:auto;padding:11px}
+    .screen{display:none}.screen.active{display:block}
+    .card,.entry-set{
+      background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+      padding:13px;margin-bottom:9px
+    }
+    .date-strip{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:9px 12px;margin-bottom:9px;border-radius:12px;
+      background:#eef2ef;color:var(--muted);font-size:12px
+    }
+    .date-strip strong{font-size:14px;color:var(--text)}
+    h2{font-size:16px;margin:0 0 10px}
+    h3{font-size:14px;margin:0}
+    label{display:block;font-size:13px;font-weight:700;margin:0 0 5px}
+    input,textarea,select{
+      width:100%;font:inherit;color:var(--text);background:#fff;
+      border:1px solid #d7ddd9;border-radius:11px;padding:11px 12px;
+      margin:0 0 10px;font-size:16px
+    }
+    textarea{min-height:88px;resize:vertical;line-height:1.5}
+    .body-text{min-height:100px}
+    .activity-list{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+    .activity-choice{
+      display:flex;align-items:center;justify-content:center;gap:5px;
+      min-height:36px;padding:6px 4px;border:1px solid var(--line);
+      border-radius:10px;background:#fff;font-size:13px;font-weight:700
+    }
+    .activity-choice:has(input:checked){background:var(--primary-soft);border-color:#8dae99}
+    .activity-choice input{width:auto;margin:0}
+    .set-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px}
+    .set-number{
+      display:inline-flex;align-items:center;justify-content:center;
+      min-width:27px;height:27px;border-radius:999px;
+      background:var(--primary);color:#fff;font-weight:800;font-size:13px
+    }
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    button{
+      border:0;border-radius:11px;padding:11px 14px;min-height:44px;
+      font-size:14px;font-weight:800;cursor:pointer
+    }
+    button.primary{background:var(--primary);color:#fff}
+    button.secondary{background:#e8ece9;color:var(--text)}
+    button.add{
+      width:100%;background:var(--primary-soft);color:var(--primary);
+      border:1px dashed #91ad9d;margin-bottom:9px
+    }
+    button.danger{background:#f9eaea;color:var(--danger)}
+    button.small{padding:6px 9px;min-height:32px;font-size:12px}
+    .star-rating{display:flex;gap:1px;margin:0 0 8px}
+    .star{
+      appearance:none;background:transparent;border:0;padding:3px 2px;
+      min-width:44px;min-height:44px;font-size:30px;line-height:1;
+      color:#c8cfca;cursor:pointer
+    }
+    .star.active{color:#f2b01e}
+    details.preview{
+      background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+      margin-bottom:9px;overflow:hidden
+    }
+    details.preview summary{
+      list-style:none;cursor:pointer;padding:13px;font-size:14px;font-weight:800
+    }
+    details.preview summary::-webkit-details-marker{display:none}
+    details.preview summary::after{content:"▼";float:right;color:var(--muted);font-size:11px}
+    details.preview[open] summary::after{content:"▲"}
+    .output{
+      white-space:pre-wrap;margin:0 12px 12px;padding:12px;
+      border:1px solid var(--line);border-radius:11px;background:#fafcfb;
+      line-height:1.65;font-size:14px
+    }
+    .copy-main{width:100%;margin-top:10px}
+    .history-item{
+      background:#fff;border:1px solid var(--line);border-radius:12px;
+      padding:12px;margin-bottom:9px
+    }
+    .history-date{font-size:14px;font-weight:800}
+    .history-type{
+      display:inline-block;margin-left:6px;padding:3px 7px;
+      background:var(--primary-soft);border-radius:999px;font-size:11px
+    }
+    .history-preview{color:var(--muted);font-size:13px;line-height:1.5;margin:7px 0 9px}
+    .empty{text-align:center;color:var(--muted);padding:26px 10px}
+    nav{
+      position:fixed;left:0;right:0;bottom:0;z-index:30;
+      display:grid;grid-template-columns:repeat(2,1fr);
+      background:#d1d8d3;border-top:1px solid #cbd3cd;
+      padding-bottom:env(safe-area-inset-bottom)
+    }
+    nav button{
+      border-radius:0;background:#fff;color:var(--muted);
+      padding:13px 6px 11px;min-height:52px
+    }
+    nav button.active{color:var(--primary);background:#f7faf8}
+    .toast{
+      position:fixed;left:50%;bottom:calc(82px + env(safe-area-inset-bottom));
+      transform:translateX(-50%);z-index:50;opacity:0;pointer-events:none;
+      color:#fff;background:#17201b;border-radius:999px;padding:10px 14px;
+      font-size:13px;transition:opacity .2s;white-space:nowrap
+    }
+    .toast.show{opacity:1}
+    .hidden{display:none!important}
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-row">
+    <button id="menuBtn" class="title-menu" aria-expanded="false">サッカーノート V17 ▾</button>
+    <button id="newBtn" class="sample-top">新規作成</button>
+  </div>
+  <div id="headerMenu" class="header-menu hidden">
+    <button id="themeSettingsBtn" class="menu-item">テーマ設定</button>
+    <div class="menu-separator"></div>
+    <button id="sampleBtn" class="menu-item muted-menu">サンプルを表示</button>
+  </div>
+</header>
+
+<main>
+  <section id="screen-write" class="screen active">
+    <div class="date-strip">
+      <span>活動日</span>
+      <strong id="dateDisplay"></strong>
+    </div>
+
+    <div class="card">
+      <div class="activity-list">
+        <label class="activity-choice"><input type="radio" name="activity" value="試合" checked>試合</label>
+        <label class="activity-choice"><input type="radio" name="activity" value="TR">TR</label>
+        <label class="activity-choice"><input type="radio" name="activity" value="その他">その他</label>
+      </div>
+
+      <div id="themeField">
+        <label for="theme">今日のテーマ</label>
+        <input id="theme" type="text" placeholder="今日意識すること">
+      </div>
+    </div>
+
+    <div id="matchForm">
+      <div id="newMatchSets"></div>
+      <div id="legacyMatchForm"><div id="matchSets"></div>
+      <button id="addMatchSet" class="add">＋ 試合の振り返りを追加</button></div>
+    </div>
+
+    <div id="trForm" class="hidden">
+      <div id="trSets"></div>
+      <button id="addTrSet" class="add">＋ 練習の振り返りを追加</button>
+    </div>
+
+    <div id="otherForm" class="hidden">
+      <div id="otherSets"></div>
+      <button id="addOtherSet" class="add">＋ 見出しと本文を追加</button>
+    </div>
+
+    <div class="card">
+      <label id="overallRatingLabel">今日の自己評価（任意）</label>
+      <div id="overallRating" class="star-rating" data-rating="0"></div>
+
+      
+
+      <label id="notesLabel" for="notes">備考</label>
+      <textarea id="notes" class="body-text" placeholder="コーチのコメント、体調など"></textarea>
+    </div>
+
+    <details id="previewDetails" class="preview">
+      <summary>TODAY文章プレビュー</summary>
+      <div id="output" class="output"></div>
+    </details>
+
+    <button id="copyBtn" class="primary copy-main">TODAY用にコピーして完了</button>
+  </section>
+
+  <section id="screen-history" class="screen">
+    <div class="card">
+      <h2>履歴</h2>
+      <div id="historyList"></div>
+    </div>
+  </section>
+</main>
+
+<div id="themeModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>テーマ設定</h2>
+      <button id="closeThemeModal" class="small secondary">閉じる</button>
+    </div>
+    <label for="defaultMatchTheme">試合のデフォルトテーマ</label>
+    <input id="defaultMatchTheme" type="text">
+    <label for="defaultTrTheme">TRのデフォルトテーマ</label>
+    <input id="defaultTrTheme" type="text">
+    <label for="matchInputMode">試合入力モード</label>
+    <select id="matchInputMode"><option value="new">新モード</option><option value="legacy">旧モード</option></select>
+    <button id="saveThemeSettings" class="primary" style="width:100%">保存</button>
+  </div>
+</div>
+
+<nav>
+  <button class="active" data-screen="write">入力フォーム</button>
+  <button data-screen="history">履歴</button>
+</nav>
+<div id="toast" class="toast"></div>
+
+<script>
+const KEYS={
+  history:"ritosoccerHistoryV17",
+  draft:"ritosoccerDraftV17",
+  themes:"ritosoccerThemesV17",
+  mode:"ritosoccerMatchModeV17"
+};
+let matchSets=[],trSets=[],otherSets=[];
+let history=loadJSON(KEYS.history,null);
+if(!history){
+  history=loadJSON("ritosoccerHistoryV16",loadJSON("ritosoccerHistoryV14",loadJSON("ritosoccerHistoryV13",loadJSON("ritosoccerHistoryV12",loadJSON("ritosoccerHistoryV11",loadJSON("ritosoccerHistoryV10",[]))))));
+  saveJSON(KEYS.history,history);
+}
+let themes=loadJSON(KEYS.themes,null);
+if(!themes){
+  themes=loadJSON("ritosoccerThemesV16",loadJSON("ritosoccerThemesV14",loadJSON("ritosoccerThemesV13",loadJSON("ritosoccerThemesV12",loadJSON("ritosoccerThemesV11",loadJSON("ritosoccerThemesV10",{試合:"",TR:"",その他:""}))))));
+  saveJSON(KEYS.themes,themes);
+}
+const DEFAULT_THEME="予測と判断を生かせる技術を身につける";
+let currentEditId=null;
+let currentActivity="試合";
+let saveTimer=null;
+
+function uuid(){
+  return crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(16).slice(2)
+}
+function loadJSON(key,fallback){
+  try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}
+}
+function saveJSON(key,value){localStorage.setItem(key,JSON.stringify(value))}
+function esc(s=""){
+  return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))
+}
+function todayISO(){
+  const d=new Date(),tz=d.getTimezoneOffset()*60000;
+  return new Date(d-tz).toISOString().slice(0,10)
+}
+function formatDate(iso){
+  const [y,m,d]=iso.split("-");return `${y}年${Number(m)}月${Number(d)}日`
+}
+function circledNumber(n){
+  const nums=["","①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯","⑰","⑱","⑲","⑳"];
+  return nums[n]||`(${n})`
+}
+function toast(msg){
+  const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),1500)
+}
+function activity(){
+  return document.querySelector('input[name="activity"]:checked')?.value||"試合"
+}
+function cleanBullet(value){
+  return String(value||"").replace(/\r/g,"").split("\n")
+    .map(x=>x.replace(/^\s*[・•●■□\-]\s*/,"").trim())
+    .filter(Boolean).map(x=>`・${x}`).join("\n")
+}
+function newMatchSet(data={}){
+  return {id:data.id||uuid(),heading:data.heading||"",good:data.good||"",bad:data.bad||"",rating:Number(data.rating)||0}
+}
+function newTrSet(data={}){
+  return {id:data.id||uuid(),heading:data.heading||"",good:data.good||"",bad:data.bad||"",rating:Number(data.rating)||0}
+}
+function newOtherSet(data={}){
+  return {id:data.id||uuid(),heading:data.heading||"",body:data.body||""}
+}
+function renderStars(container,rating=0,onChange){
+  container.innerHTML="";container.dataset.rating=String(rating||0);
+  for(let i=1;i<=5;i++){
+    const b=document.createElement("button");b.type="button";
+    b.className="star"+(i<=rating?" active":"");b.textContent="★";b.dataset.value=i;
+    container.appendChild(b)
+  }
+  container.onclick=e=>{
+    const b=e.target.closest(".star");if(!b)return;
+    const clicked=Number(b.dataset.value),current=Number(container.dataset.rating||0);
+    const next=current===clicked?0:clicked;
+    renderStars(container,next,onChange);onChange?.(next);changed()
+  }
+}
+const MATCH_HEADINGS=["オン・ザ・ボールの攻撃","オン・ザ・ボールの守備","オフ・ザ・ボールの攻撃","オフ・ザ・ボールの守備"];
+let preferredMatchMode=loadJSON(KEYS.mode,"new")==="legacy"?"legacy":"new";
+let matchMode=preferredMatchMode;
+let newMatchSets=MATCH_HEADINGS.map(()=>({good:"",bad:""}));
+function renderNewMatchSets(){
+  document.getElementById("newMatchSets").innerHTML=MATCH_HEADINGS.map((heading,i)=>`
+    <div class="entry-set"><h3 style="margin-bottom:12px">${circledNumber(i+1)} ${heading}</h3>
+    <label for="newGood${i}">できたこと</label>
+    <textarea id="newGood${i}" data-new-good="${i}" placeholder="1行ずつ入力">${esc(newMatchSets[i].good)}</textarea>
+    <label for="newBad${i}">次の試合で改善・継続したいこと</label>
+    <textarea id="newBad${i}" data-new-bad="${i}" placeholder="1行ずつ入力">${esc(newMatchSets[i].bad)}</textarea></div>`).join("");
+}
+function updateMatchModeUI(){
+  const isNew=activity()==="試合"&&matchMode==="new";
+  document.getElementById("newMatchSets").classList.toggle("hidden",!isNew);
+  document.getElementById("legacyMatchForm").classList.toggle("hidden",isNew);
+  document.getElementById("overallRatingLabel").textContent=isNew?"今日の評価（5段階）":"今日の自己評価（任意）";
+  document.getElementById("notesLabel").textContent=isNew?"備考（任意）":"備考";
+}
+function renderMatchSets(){
+  const wrap=document.getElementById("matchSets");wrap.innerHTML="";
+  matchSets.forEach((set,i)=>{
+    const box=document.createElement("div");box.className="entry-set";
+    box.innerHTML=`
+      <div class="set-head">
+        <div class="actions"><span class="set-number">${circledNumber(i+1)}</span><h3>試合</h3></div>
+        ${matchSets.length>1?`<button class="small danger" data-remove-match="${set.id}">削除</button>`:""}
+      </div>
+      <label>見出し</label>
+      <input data-match-heading="${set.id}" value="${esc(set.heading)}" placeholder="例：初戦：インサイドハーフ">
+      <label>良かったこと・挑戦できたこと</label>
+      <textarea data-match-good="${set.id}" placeholder="1行ずつ入力">${esc(set.good)}</textarea>
+      <label>悪かったこと・課題</label>
+      <textarea data-match-bad="${set.id}" placeholder="1行ずつ入力">${esc(set.bad)}</textarea>
+      <label>この項目の評価（任意）</label>
+      <div class="star-rating" data-match-rating="${set.id}"></div>`;
+    wrap.appendChild(box);
+    renderStars(box.querySelector(`[data-match-rating="${set.id}"]`),set.rating,v=>{
+      const target=matchSets.find(x=>x.id===set.id);if(target)target.rating=v
+    })
+  })
+}
+function renderTrSets(){
+  const wrap=document.getElementById("trSets");wrap.innerHTML="";
+  trSets.forEach((set,i)=>{
+    const box=document.createElement("div");box.className="entry-set";
+    box.innerHTML=`
+      <div class="set-head">
+        <div class="actions"><span class="set-number">${circledNumber(i+1)}</span><h3>TR</h3></div>
+        ${trSets.length>1?`<button class="small danger" data-remove-tr="${set.id}">削除</button>`:""}
+      </div>
+      <label>見出し</label>
+      <input data-tr-heading="${set.id}" value="${esc(set.heading)}" placeholder="例：ワンタッチのボールコントロール">
+      <label>良かったこと・挑戦できたこと</label>
+      <textarea data-tr-good="${set.id}" placeholder="1行ずつ入力">${esc(set.good)}</textarea>
+      <label>悪かったこと・課題</label>
+      <textarea data-tr-bad="${set.id}" placeholder="1行ずつ入力">${esc(set.bad)}</textarea>
+      <label>この項目の評価（任意）</label>
+      <div class="star-rating" data-tr-rating="${set.id}"></div>`;
+    wrap.appendChild(box);
+    renderStars(box.querySelector(`[data-tr-rating="${set.id}"]`),set.rating,v=>{
+      const target=trSets.find(x=>x.id===set.id);if(target)target.rating=v
+    })
+  })
+}
+function renderOtherSets(){
+  const wrap=document.getElementById("otherSets");wrap.innerHTML="";
+  otherSets.forEach((set,i)=>{
+    const box=document.createElement("div");box.className="entry-set";
+    box.innerHTML=`
+      <div class="set-head">
+        <div class="actions"><span class="set-number">${circledNumber(i+1)}</span><h3>自由記入</h3></div>
+        ${otherSets.length>1?`<button class="small danger" data-remove-other="${set.id}">削除</button>`:""}
+      </div>
+      <label>見出し</label>
+      <input data-other-heading="${set.id}" value="${esc(set.heading)}" placeholder="見出し">
+      <label>本文</label>
+      <textarea class="body-text" data-other-body="${set.id}" placeholder="自由に入力">${esc(set.body)}</textarea>`;
+    wrap.appendChild(box)
+  })
+}
+function syncSets(){
+  newMatchSets=newMatchSets.map((s,i)=>({good:document.getElementById(`newGood${i}`)?.value??s.good,bad:document.getElementById(`newBad${i}`)?.value??s.bad}));
+  matchSets=matchSets.map(s=>({...s,
+    heading:document.querySelector(`[data-match-heading="${s.id}"]`)?.value??s.heading,
+    good:document.querySelector(`[data-match-good="${s.id}"]`)?.value??s.good,
+    bad:document.querySelector(`[data-match-bad="${s.id}"]`)?.value??s.bad,
+    rating:Number(document.querySelector(`[data-match-rating="${s.id}"]`)?.dataset.rating??s.rating)
+  }));
+  trSets=trSets.map(s=>({...s,
+    heading:document.querySelector(`[data-tr-heading="${s.id}"]`)?.value??s.heading,
+    good:document.querySelector(`[data-tr-good="${s.id}"]`)?.value??s.good,
+    bad:document.querySelector(`[data-tr-bad="${s.id}"]`)?.value??s.bad,
+    rating:Number(document.querySelector(`[data-tr-rating="${s.id}"]`)?.dataset.rating??s.rating)
+  }));
+  otherSets=otherSets.map(s=>({...s,
+    heading:document.querySelector(`[data-other-heading="${s.id}"]`)?.value??s.heading,
+    body:document.querySelector(`[data-other-body="${s.id}"]`)?.value??s.body
+  }))
+}
+function collect(){
+  syncSets();
+  return {
+    date:todayISO(),activity:activity(),
+    matchMode, newMatchSets:newMatchSets.map(x=>({good:cleanBullet(x.good),bad:cleanBullet(x.bad)})),
+    theme:activity()==="その他"?"":document.getElementById("theme").value.trim(),
+    matchSets:matchSets.map(x=>({...x,good:cleanBullet(x.good),bad:cleanBullet(x.bad)})),
+    trSets:trSets.map(x=>({...x,good:cleanBullet(x.good),bad:cleanBullet(x.bad)})),
+    otherSets:otherSets.map(x=>({...x,heading:x.heading.trim(),body:x.body.trim()})),
+    overallRating:Number(document.getElementById("overallRating").dataset.rating||0),
+    notes:document.getElementById("notes").value.trim()
+  }
+}
+function generate(data=collect()){
+  let text=`【活動】\n${data.activity}`;
+  if(data.theme)text+=`\n\n【今日のテーマ】\n${data.theme}`;
+  const isNew=data.activity==="試合"&&data.matchMode==="new";
+  if(isNew){
+    MATCH_HEADINGS.forEach((heading,i)=>{
+      const x=data.newMatchSets?.[i]||{};
+      text+=`\n\n【${circledNumber(i+1)} ${heading}】\n\n〈できたこと〉\n${x.good||""}\n\n〈次の試合で改善・継続したいこと〉\n${x.bad||""}`;
+    });
+    text+=`\n\n【今日の評価】\n${data.overallRating?`${data.overallRating}/5点`:"未選択"}`;
+    if(data.notes)text+=`\n\n【備考】\n${data.notes}`;
+    return text;
+  }
+  const sets=data.activity==="試合"?data.matchSets:data.activity==="TR"?data.trSets:data.otherSets;
+  sets.forEach((x,i)=>{
+    if(data.activity==="その他"){
+      if(!x.heading&&!x.body)return;
+      text+=`\n\n【${circledNumber(i+1)} ${x.heading||`項目 ${i+1}`}】`;
+      if(x.body)text+=`\n${x.body}`;
+      return
+    }
+    if(!x.heading&&!x.good&&!x.bad&&!x.rating)return;
+    text+=`\n\n【${circledNumber(i+1)} ${x.heading||`${data.activity} ${i+1}`}】`;
+    if(x.good)text+=`\n\n〈良かったこと・挑戦できたこと〉\n${x.good}`;
+    if(x.bad)text+=`\n\n〈悪かったこと・課題〉\n${x.bad}`;
+    if(x.rating)text+=`\n\n〈評価〉\n${x.rating}/5点`
+  });
+  if(data.overallRating)text+=`\n\n【今日の自己評価】\n${data.overallRating}/5点`;
+  if(data.notes)text+=`\n\n【備考】\n${data.notes}`;
+  return text
+}
+function updateOutput(){
+  document.getElementById("output").textContent=generate()
+}
+function saveDraft(){
+  const data=collect();saveJSON(KEYS.draft,data);
+  if(data.activity!=="その他"&&data.theme){themes[data.activity]=data.theme;saveJSON(KEYS.themes,themes)}
+}
+function changed(){
+  updateOutput();
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(saveDraft,900)
+}
+function setActivity(type){
+  if(currentActivity!=="その他"){
+    themes[currentActivity]=document.getElementById("theme").value.trim();
+  }
+  currentActivity=type;
+  const themeField=document.getElementById("themeField");
+  themeField.classList.toggle("hidden",type==="その他");
+  document.getElementById("theme").value=type==="その他"?"":(themes[type]||DEFAULT_THEME);
+  document.getElementById("matchForm").classList.toggle("hidden",type!=="試合");
+  document.getElementById("trForm").classList.toggle("hidden",type!=="TR");
+  document.getElementById("otherForm").classList.toggle("hidden",type!=="その他");
+  updateMatchModeUI();
+  changed()
+}
+function applyData(data){
+  matchMode=data.matchMode==="new"?"new":data.matchMode==="legacy"||data.matchSets?.length?"legacy":preferredMatchMode;
+  newMatchSets=MATCH_HEADINGS.map((_,i)=>({good:data.newMatchSets?.[i]?.good||"",bad:data.newMatchSets?.[i]?.bad||""}));
+  renderNewMatchSets();
+  const radio=document.querySelector(`input[name="activity"][value="${data.activity||"試合"}"]`);
+  if(radio)radio.checked=true;
+  currentActivity=data.activity||"試合";
+  document.getElementById("theme").value=data.theme||themes[currentActivity]||DEFAULT_THEME;
+  matchSets=(data.matchSets?.length?data.matchSets:[newMatchSet()]).map(newMatchSet);
+  trSets=(data.trSets?.length?data.trSets:[newTrSet()]).map(newTrSet);
+  otherSets=(data.otherSets?.length?data.otherSets:[newOtherSet()]).map(newOtherSet);
+  renderMatchSets();renderTrSets();renderOtherSets();
+  renderStars(document.getElementById("overallRating"),Number(data.overallRating)||0,()=>{});
+  document.getElementById("notes").value=data.notes||"";
+  setActivity(currentActivity);updateOutput()
+}
+function fillSample(){
+  const type=activity();
+  if(type==="試合"&&matchMode==="new"){
+    document.getElementById("theme").value=DEFAULT_THEME;
+    newMatchSets=[
+      {good:"周りを確認して逆をつくパスができた",bad:"ファーストタッチの精度を高めたい"},
+      {good:"相手のドリブルに対して粘り強く対応できた",bad:"当たり方を工夫したい"},
+      {good:"味方がパスを出せる位置に動けた",bad:"ボールを受ける前の確認を続けたい"},
+      {good:"パスの出しどころを予測してカバーできた",bad:"味方と声をかけ合って位置を調整したい"}
+    ];
+    renderNewMatchSets();renderStars(document.getElementById("overallRating"),4,()=>{});
+    document.getElementById("notes").value="次の試合でも予測と判断を意識して取り組みたい。";
+  }else if(type==="試合"){
+    document.getElementById("theme").value="予測と判断を生かせる技術を身につける";
+    matchSets=[
+      newMatchSet({
+        heading:"初戦：インサイドハーフ",
+        good:"ボールを受ける前に周りを確認でき、逆をつくことができた\nパスの出しどころを予測してパスカットできた",
+        bad:"サイドバックの上がりに対して中に入るのが少しだけ遅れてしまったしまった\n相手の強度が高くなると当たり負けることが多いので当たり方を工夫したい",
+        rating:4
+      }),
+      newMatchSet({
+        heading:"2試合目：ボランチ",
+        good:"ボールをためて味方の上がりを待って展開することができた\n前に出てきたキーパーの頭上を越えるシュートを決めることができた",
+        bad:"高めのボールをすばやくコントロールする技術がまだ足りない",
+        rating:4
+      })
+    ];
+    renderMatchSets();renderStars(document.getElementById("overallRating"),4,()=>{});
+    document.getElementById("notes").value="久しぶりに点を決めることができたので、継続してゴールを狙っていきたい。"
+  }else if(type==="TR"){
+    document.getElementById("theme").value="予測と判断を生かせる技術を身につける";
+    trSets=[newTrSet({
+      heading:"ワンタッチのボールコントロールにこだわる",
+      good:"ワンタッチで逆をつくことができた",
+      bad:"浮き玉の時の処理がまだ精度が低い",
+      rating:3
+    })];
+    renderTrSets();renderStars(document.getElementById("overallRating"),0,()=>{});
+    document.getElementById("notes").value=""
+  }else{
+    otherSets=[newOtherSet({heading:"コーチからのコメント",body:"自由に入力してください"})];
+    renderOtherSets()
+  }
+  changed();toast("サンプルを入力しました")
+}
+async function copyText(text){
+  try{await navigator.clipboard.writeText(text)}
+  catch{
+    const ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);
+    ta.select();document.execCommand("copy");ta.remove()
+  }
+}
+function enforceHistoryLimit(){
+  while(history.length>20){
+    const unlocked=history
+      .map((item,index)=>({item,index}))
+      .filter(x=>!x.item.locked)
+      .sort((a,b)=>(a.item.createdAt||a.item.updatedAt||"").localeCompare(b.item.createdAt||b.item.updatedAt||""));
+    if(!unlocked.length)break;
+    history.splice(unlocked[0].index,1);
+  }
+}
+function saveCompleted(){
+  const data=collect(),text=generate(data),now=new Date().toISOString();
+  if(data.activity!=="その他"){
+    themes[data.activity]=data.theme||themes[data.activity]||DEFAULT_THEME;
+    saveJSON(KEYS.themes,themes);
+  }
+  if(currentEditId){
+    const i=history.findIndex(x=>x.id===currentEditId);
+    if(i>=0){
+      history[i]={...history[i],date:data.date,data,text,updatedAt:now};
+    }else{
+      history.push({id:uuid(),date:data.date,data,text,createdAt:now,updatedAt:now,locked:false});
+    }
+  }else{
+    history.push({id:uuid(),date:data.date,data,text,createdAt:now,updatedAt:now,locked:false});
+  }
+  enforceHistoryLimit();
+  saveJSON(KEYS.history,history);
+  currentEditId=null;
+  saveDraft();
+  return text
+}
+function renderHistory(){
+  const wrap=document.getElementById("historyList");
+  if(!history.length){wrap.innerHTML='<div class="empty">まだ保存された活動報告はありません。</div>';return}
+  wrap.innerHTML=[...history].sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||"")).map(item=>`
+    <div class="history-item">
+      <div class="history-date">${item.locked?"🔒 ":""}${esc(formatDate(item.date))}<span class="history-type">${esc(item.data.activity)}</span></div>
+      ${item.data.theme?`<div class="history-preview"><strong>テーマ：</strong>${esc(item.data.theme)}</div>`:""}
+      <div class="history-preview">${esc(item.text.slice(0,120))}${item.text.length>120?"…":""}</div>
+      <div class="actions">
+        <button class="small primary" data-h="copy" data-id="${item.id}">コピー</button>
+        <button class="small secondary" data-h="edit" data-id="${item.id}">編集</button>
+        <button class="small ${item.locked?"locked":""} lock-btn" data-h="lock" data-id="${item.id}">${item.locked?"ロック解除":"ロック"}</button>
+        <button class="small danger" data-h="delete" data-id="${item.id}">削除</button>
+      </div>
+    </div>`).join("")
+}
+function startNew(){
+  saveDraft();
+  currentEditId=null;
+  const type=activity();
+  currentActivity=type;
+  document.getElementById("theme").value=type==="その他"?"":(themes[type]||DEFAULT_THEME);
+  matchMode=preferredMatchMode;
+  newMatchSets=MATCH_HEADINGS.map(()=>({good:"",bad:""}));
+  renderNewMatchSets();
+  matchSets=[newMatchSet()];
+  trSets=[newTrSet()];
+  otherSets=[newOtherSet()];
+  renderMatchSets();
+  renderTrSets();
+  renderOtherSets();
+  renderStars(document.getElementById("overallRating"),0,()=>{});
+  document.getElementById("notes").value="";
+  document.getElementById("previewDetails").open=false;
+  setActivity(type);
+  updateOutput();
+  saveDraft();
+  switchScreen("write");
+  toast("新規作成を開始しました");
+}
+
+function switchScreen(name){
+  document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
+  document.getElementById(`screen-${name}`).classList.add("active");
+  document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.screen===name));
+  if(name==="history")renderHistory();
+  window.scrollTo({top:0,behavior:"smooth"})
+}
+
+document.getElementById("dateDisplay").textContent=formatDate(todayISO());
+document.querySelectorAll('input[name="activity"]').forEach(x=>x.addEventListener("change",()=>setActivity(x.value)));
+document.addEventListener("input",e=>{if(e.target.matches("input,textarea"))changed()});
+document.getElementById("addMatchSet").onclick=()=>{syncSets();matchSets.push(newMatchSet());renderMatchSets();changed()};
+document.getElementById("addTrSet").onclick=()=>{syncSets();trSets.push(newTrSet());renderTrSets();changed()};
+document.getElementById("addOtherSet").onclick=()=>{syncSets();otherSets.push(newOtherSet());renderOtherSets();changed()};
+document.getElementById("matchSets").onclick=e=>{
+  const b=e.target.closest("[data-remove-match]");if(!b)return;
+  syncSets();matchSets=matchSets.filter(x=>x.id!==b.dataset.removeMatch);renderMatchSets();changed()
+};
+document.getElementById("trSets").onclick=e=>{
+  const b=e.target.closest("[data-remove-tr]");if(!b)return;
+  syncSets();trSets=trSets.filter(x=>x.id!==b.dataset.removeTr);renderTrSets();changed()
+};
+document.getElementById("otherSets").onclick=e=>{
+  const b=e.target.closest("[data-remove-other]");if(!b)return;
+  syncSets();otherSets=otherSets.filter(x=>x.id!==b.dataset.removeOther);renderOtherSets();changed()
+};
+document.getElementById("menuBtn").onclick=()=>{
+  const menu=document.getElementById("headerMenu");
+  const open=menu.classList.contains("hidden");
+  menu.classList.toggle("hidden",!open);
+  document.getElementById("menuBtn").setAttribute("aria-expanded",String(open));
+};
+document.getElementById("themeSettingsBtn").onclick=()=>{
+  document.getElementById("headerMenu").classList.add("hidden");
+  document.getElementById("menuBtn").setAttribute("aria-expanded","false");
+  document.getElementById("defaultMatchTheme").value=themes["試合"]||DEFAULT_THEME;
+  document.getElementById("defaultTrTheme").value=themes["TR"]||DEFAULT_THEME;
+  document.getElementById("matchInputMode").value=matchMode;
+  document.getElementById("themeModal").classList.remove("hidden");
+};
+document.getElementById("closeThemeModal").onclick=()=>document.getElementById("themeModal").classList.add("hidden");
+document.getElementById("themeModal").onclick=e=>{
+  if(e.target.id==="themeModal")document.getElementById("themeModal").classList.add("hidden");
+};
+document.getElementById("saveThemeSettings").onclick=()=>{
+  syncSets();
+  preferredMatchMode=document.getElementById("matchInputMode").value;
+  matchMode=preferredMatchMode;
+  saveJSON(KEYS.mode,preferredMatchMode);
+  updateMatchModeUI();
+  themes["試合"]=document.getElementById("defaultMatchTheme").value.trim()||DEFAULT_THEME;
+  themes["TR"]=document.getElementById("defaultTrTheme").value.trim()||DEFAULT_THEME;
+  saveJSON(KEYS.themes,themes);
+  const type=activity();
+  if(type!=="その他")document.getElementById("theme").value=themes[type];
+  document.getElementById("themeModal").classList.add("hidden");
+  changed();
+  toast("テーマ設定を保存しました");
+};
+document.getElementById("sampleBtn").onclick=()=>{
+  document.getElementById("headerMenu").classList.add("hidden");
+  document.getElementById("menuBtn").setAttribute("aria-expanded","false");
+  fillSample();
+};
+document.getElementById("newBtn").onclick=startNew;
+document.addEventListener("click",e=>{
+  if(!e.target.closest("header")){
+    document.getElementById("headerMenu").classList.add("hidden");
+    document.getElementById("menuBtn").setAttribute("aria-expanded","false");
+  }
+});
+document.getElementById("copyBtn").onclick=async()=>{
+  const text=saveCompleted();await copyText(text);toast("保存してコピーしました")
+};
+document.querySelectorAll("nav button").forEach(x=>x.onclick=()=>switchScreen(x.dataset.screen));
+document.getElementById("historyList").onclick=async e=>{
+  const b=e.target.closest("[data-h]");if(!b)return;
+  const item=history.find(x=>x.id===b.dataset.id);if(!item)return;
+  if(b.dataset.h==="copy"){await copyText(item.text);toast("コピーしました")}
+  if(b.dataset.h==="edit"){currentEditId=item.id;applyData(item.data);switchScreen("write");toast("編集モードです")}
+  if(b.dataset.h==="lock"){
+    item.locked=!item.locked;
+    saveJSON(KEYS.history,history);
+    renderHistory();
+    toast(item.locked?"履歴をロックしました":"ロックを解除しました");
+  }
+  if(b.dataset.h==="delete"){
+    if(!confirm(item.locked?"ロック済みの履歴です。削除しますか？":"削除しますか？"))return;
+    history=history.filter(x=>x.id!==item.id);saveJSON(KEYS.history,history);renderHistory()
+  }
+};
+
+const draft=loadJSON(KEYS.draft,loadJSON("ritosoccerDraftV16",null));
+if(draft)applyData(draft);
+else applyData({
+  matchMode:preferredMatchMode,
+  activity:"試合",
+  theme:themes["試合"]||DEFAULT_THEME,
+  matchSets:[newMatchSet()],
+  trSets:[newTrSet()],
+  otherSets:[newOtherSet()]
+});
+setInterval(saveDraft,5000);
+window.addEventListener("beforeunload",saveDraft);
+if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));
+</script>
+</body>
+</html>
