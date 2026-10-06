@@ -189,6 +189,10 @@
         <label class="activity-choice"><input type="radio" name="activity" value="その他">その他</label>
       </div>
 
+      <div id="matchTitleField" class="hidden">
+        <label for="matchTitle">試合</label>
+        <input id="matchTitle" type="text" placeholder="例：大会名、対戦相手">
+      </div>
       <div id="themeField">
         <label for="theme">今日のテーマ</label>
         <input id="theme" type="text" placeholder="今日意識すること">
@@ -347,7 +351,8 @@ let matchMode=preferredMatchMode;
 let newMatchSets=MATCH_HEADINGS.map(()=>({good:"",bad:""}));
 function renderNewMatchSets(){
   document.getElementById("newMatchSets").innerHTML=MATCH_HEADINGS.map((heading,i)=>`
-    <div class="entry-set"><h3 style="margin-bottom:12px">${circledNumber(i+1)} ${heading}</h3>
+    ${i===0||i===2?`<h2 style="margin:16px 0 10px">◼️${i===0?"オン・ザ・ボール":"オフ・ザ・ボール"}</h2>`:""}
+    <div class="entry-set"><h3 style="margin-bottom:12px">${circledNumber(i+1)} ${i%2===0?"攻撃":"守備"}</h3>
     <label for="newGood${i}">できたこと</label>
     <textarea id="newGood${i}" data-new-good="${i}" placeholder="1行ずつ入力">${esc(newMatchSets[i].good)}</textarea>
     <label for="newBad${i}">次の試合で改善・継続したいこと</label>
@@ -355,6 +360,7 @@ function renderNewMatchSets(){
 }
 function updateMatchModeUI(){
   const isNew=activity()==="試合"&&matchMode==="new";
+  document.getElementById("matchTitleField").classList.toggle("hidden",!isNew);
   document.getElementById("newMatchSets").classList.toggle("hidden",!isNew);
   document.getElementById("legacyMatchForm").classList.toggle("hidden",isNew);
   document.getElementById("overallRatingLabel").textContent=isNew?"今日の評価（5段階）":"今日の自己評価（任意）";
@@ -393,18 +399,15 @@ function renderTrSets(){
         <div class="actions"><span class="set-number">${circledNumber(i+1)}</span><h3>TR</h3></div>
         ${trSets.length>1?`<button class="small danger" data-remove-tr="${set.id}">削除</button>`:""}
       </div>
-      <label>見出し</label>
-      <input data-tr-heading="${set.id}" value="${esc(set.heading)}" placeholder="例：ワンタッチのボールコントロール">
+      <label>見出し（練習場所・練習内容）</label>
+      <input data-tr-heading="${set.id}" value="${esc(set.heading)}" placeholder="例：〇〇グラウンド／パス・ボールコントロール">
       <label>良かったこと・挑戦できたこと</label>
       <textarea data-tr-good="${set.id}" placeholder="1行ずつ入力">${esc(set.good)}</textarea>
       <label>悪かったこと・課題</label>
       <textarea data-tr-bad="${set.id}" placeholder="1行ずつ入力">${esc(set.bad)}</textarea>
-      <label>この項目の評価（任意）</label>
-      <div class="star-rating" data-tr-rating="${set.id}"></div>`;
+      `;
     wrap.appendChild(box);
-    renderStars(box.querySelector(`[data-tr-rating="${set.id}"]`),set.rating,v=>{
-      const target=trSets.find(x=>x.id===set.id);if(target)target.rating=v
-    })
+
   })
 }
 function renderOtherSets(){
@@ -446,6 +449,7 @@ function collect(){
   syncSets();
   return {
     date:todayISO(),activity:activity(),
+    matchTitle:document.getElementById("matchTitle").value.trim(),
     matchMode, newMatchSets:newMatchSets.map(x=>({good:plainLines(x.good),bad:plainLines(x.bad)})),
     theme:activity()==="その他"?"":document.getElementById("theme").value.trim(),
     matchSets:matchSets.map(x=>({...x,good:cleanBullet(x.good),bad:cleanBullet(x.bad)})),
@@ -460,9 +464,11 @@ function generate(data=collect()){
   if(data.theme)text+=`\n\n【今日のテーマ】\n${data.theme}`;
   const isNew=data.activity==="試合"&&data.matchMode==="new";
   if(isNew){
+    text=`【試合】${data.matchTitle||""}\n\n【今日のテーマ】${data.theme||""}`;
     MATCH_HEADINGS.forEach((heading,i)=>{
       const x=data.newMatchSets?.[i]||{};
-      text+=`\n\n【${circledNumber(i+1)} ${heading}】\nできたこと：${plainLines(x.good)}\n次の試合で改善・継続したいこと：${plainLines(x.bad)}`;
+      if(i===0||i===2)text+=`\n\n◼️${i===0?"オン・ザ・ボール":"オフ・ザ・ボール"}`;
+      text+=`\n\n${circledNumber(i+1)}${i<2?" ":""}${i%2===0?"攻撃":"守備"}\nできたこと：${plainLines(x.good)}\n次の試合で改善・継続したいこと：${plainLines(x.bad)}`;
     });
     text+=`\n\n【今日の評価】\n${data.overallRating?`${data.overallRating}/5点`:"未選択"}`;
     if(data.notes)text+=`\n\n【備考】\n${data.notes}`;
@@ -476,11 +482,11 @@ function generate(data=collect()){
       if(x.body)text+=`\n${x.body}`;
       return
     }
-    if(!x.heading&&!x.good&&!x.bad&&!x.rating)return;
+    if(!x.heading&&!x.good&&!x.bad&&!(data.activity!=="TR"&&x.rating))return;
     text+=`\n\n【${circledNumber(i+1)} ${x.heading||`${data.activity} ${i+1}`}】`;
     if(x.good)text+=`\n\n〈良かったこと・挑戦できたこと〉\n${x.good}`;
     if(x.bad)text+=`\n\n〈悪かったこと・課題〉\n${x.bad}`;
-    if(x.rating)text+=`\n\n〈評価〉\n${x.rating}/5点`
+    if(data.activity!=="TR"&&x.rating)text+=`\n\n〈評価〉\n${x.rating}/5点`
   });
   if(data.overallRating)text+=`\n\n【今日の自己評価】\n${data.overallRating}/5点`;
   if(data.notes)text+=`\n\n【備考】\n${data.notes}`;
@@ -513,6 +519,7 @@ function setActivity(type){
   changed()
 }
 function applyData(data){
+  document.getElementById("matchTitle").value=data.matchTitle||"";
   matchMode=data.matchMode==="new"?"new":data.matchMode==="legacy"||data.matchSets?.length?"legacy":preferredMatchMode;
   newMatchSets=MATCH_HEADINGS.map((_,i)=>({good:plainLines(data.newMatchSets?.[i]?.good),bad:plainLines(data.newMatchSets?.[i]?.bad)}));
   renderNewMatchSets();
@@ -532,6 +539,7 @@ function fillSample(){
   const type=activity();
   if(type==="試合"&&matchMode==="new"){
     document.getElementById("theme").value=DEFAULT_THEME;
+    document.getElementById("matchTitle").value="練習試合";
     newMatchSets=[
       {good:"周りを確認して逆をつくパスができた",bad:"ファーストタッチの精度を高めたい"},
       {good:"相手のドリブルに対して粘り強く対応できた",bad:"当たり方を工夫したい"},
@@ -638,6 +646,7 @@ function startNew(){
   const type=activity();
   currentActivity=type;
   document.getElementById("theme").value=type==="その他"?"":(themes[type]||DEFAULT_THEME);
+  document.getElementById("matchTitle").value="";
   matchMode=preferredMatchMode;
   newMatchSets=MATCH_HEADINGS.map(()=>({good:"",bad:""}));
   renderNewMatchSets();
